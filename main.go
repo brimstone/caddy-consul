@@ -1,7 +1,10 @@
 package caddyconsul
 
 import (
+	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -18,13 +21,16 @@ var consulGenerator *caddyfile
 var initalized = false
 
 type caddyfile struct {
-	contents  string
-	lastIndex uint64
-	domains   map[string]*domain
-	services  map[string][]*service
+	contents    string
+	lastKV      uint64
+	lastService uint64
+	domains     map[string]*domain
+	services    map[string][]*service
 }
 
 func (s *caddyfile) Body() []byte {
+	fmt.Println("Generated config:")
+	fmt.Println(s.contents)
 	return []byte(s.contents)
 }
 
@@ -81,6 +87,7 @@ func myLoader(serverType string) (caddy.Input, error) {
 
 	consulGenerator = new(caddyfile)
 	consulGenerator.WatchKV(false)
+	consulGenerator.WatchServices(false)
 	consulGenerator.StartWatching()
 
 	initalized = true
@@ -88,12 +95,32 @@ func myLoader(serverType string) (caddy.Input, error) {
 }
 
 func buildConfig(address string, d domain, s map[string][]*service) string {
-	ret := address + "\n"
+	ret := address + " {\n"
 
 	ret += d.Config + "\n"
 
 	for servicename, _ := range s {
-		ret += "#" + servicename + "\n"
+		if !strings.HasPrefix(servicename, "/") {
+			continue
+		}
+		ret += "	proxy " + servicename
+		for i := range s[servicename] {
+			ret += " " + s[servicename][i].Address + ":" + strconv.Itoa(s[servicename][i].Port)
+		}
+		ret += "\n"
 	}
+	ret += "}\n\n"
+	for servicename, _ := range s {
+		if strings.HasPrefix(servicename, "/") {
+			continue
+		}
+		ret += strings.TrimSuffix(servicename, "/") + "." + address + " {\n"
+		ret += "	proxy /"
+		for i := range s[servicename] {
+			ret += " " + s[servicename][i].Address + ":" + strconv.Itoa(s[servicename][i].Port)
+		}
+		ret += "\n"
+	}
+	ret += "}\n"
 	return ret + "\n"
 }

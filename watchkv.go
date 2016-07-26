@@ -8,15 +8,6 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-type servicesIota int
-
-const (
-	none servicesIota = iota
-	directories
-	subdomain
-	both
-)
-
 type domain struct {
 	Config string
 }
@@ -24,13 +15,13 @@ type domain struct {
 func (s *caddyfile) WatchKV(reload bool) {
 
 	opts := api.QueryOptions{
-		WaitIndex: s.lastIndex,
+		WaitIndex: s.lastKV,
 		WaitTime:  5 * time.Minute,
 	}
-	fmt.Println("Watching for new KV with index", s.lastIndex, "or better")
+	fmt.Println("Watching for new KV with index", s.lastKV, "or better")
 	pairs, meta, err := kv.List("caddy/", &opts)
-	if meta.LastIndex > s.lastIndex {
-		s.lastIndex = meta.LastIndex
+	if meta.LastIndex > s.lastKV {
+		s.lastKV = meta.LastIndex
 	}
 	if err != nil {
 		fmt.Println(err)
@@ -47,9 +38,9 @@ func (s *caddyfile) WatchKV(reload bool) {
 		if key == "" {
 			continue
 		}
-		fmt.Println(k.Key)
 		keybits := strings.SplitN(key, "/", 2)
 		if s.domains[keybits[0]] == nil {
+			fmt.Println("adding a KV")
 			s.domains[keybits[0]] = &domain{
 				Config: "",
 			}
@@ -65,10 +56,11 @@ func (s *caddyfile) WatchKV(reload bool) {
 	for address, domain := range s.domains {
 		contents += buildConfig(address, *domain, s.services)
 	}
+	if contents == "" {
+		fmt.Println("Contents are empty. Perhaps KV isn't configured correctly?")
+	}
 	s.contents = contents
 
-	fmt.Println("Generated config:")
-	fmt.Println(s.contents)
 	if reload {
 		reloadCaddy()
 	}
