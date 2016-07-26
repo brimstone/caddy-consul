@@ -18,8 +18,7 @@ const (
 )
 
 type domain struct {
-	Config   string
-	Services servicesIota
+	Config string
 }
 
 func (s *caddyfile) WatchKV(reload bool) {
@@ -28,9 +27,13 @@ func (s *caddyfile) WatchKV(reload bool) {
 		WaitIndex: s.lastIndex,
 		WaitTime:  5 * time.Minute,
 	}
-	fmt.Println("Watching for", s.lastIndex, "or better")
-	pairs, _, err := kv.List("caddy/", &opts)
+	fmt.Println("Watching for new KV with index", s.lastIndex, "or better")
+	pairs, meta, err := kv.List("caddy/", &opts)
+	if meta.LastIndex > s.lastIndex {
+		s.lastIndex = meta.LastIndex
+	}
 	if err != nil {
+		fmt.Println(err)
 		// this should probably be logged
 		return
 	}
@@ -41,41 +44,26 @@ func (s *caddyfile) WatchKV(reload bool) {
 	}
 	for _, k := range pairs {
 		key := strings.TrimLeft(k.Key, "caddy/")
-		if k.ModifyIndex > s.lastIndex {
-			fmt.Println("index now", k.ModifyIndex)
-			s.lastIndex = k.ModifyIndex
-		}
 		if key == "" {
 			continue
 		}
 		fmt.Println(k.Key)
 		keybits := strings.SplitN(key, "/", 2)
+		if s.domains[keybits[0]] == nil {
+			s.domains[keybits[0]] = &domain{
+				Config: "",
+			}
+		}
 		if keybits[1] == "" {
 			continue
 		}
-		if s.domains[keybits[0]] == nil {
-			s.domains[keybits[0]] = &domain{
-				Config:   "",
-				Services: none,
-			}
-		}
 		if keybits[1] == "config" {
 			s.domains[keybits[0]].Config = keybits[1]
-		} else if keybits[1] == "services" {
-			if string(k.Value) == "directories" {
-				s.domains[keybits[0]].Services = directories
-			} else if string(k.Value) == "subdomain" {
-				s.domains[keybits[0]].Services = subdomain
-			} else if string(k.Value) == "both" {
-				s.domains[keybits[0]].Services = both
-			} else {
-				s.domains[keybits[0]].Services = none
-			}
 		}
 	}
 	contents := ""
 	for address, domain := range s.domains {
-		contents += buildConfig(address, *domain)
+		contents += buildConfig(address, *domain, s.services)
 	}
 	s.contents = contents
 

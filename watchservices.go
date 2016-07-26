@@ -9,9 +9,10 @@ import (
 )
 
 type service struct {
-	Name    string
-	Address string
-	Port    int
+	Name      string
+	Address   string
+	Port      int
+	Directory bool
 }
 
 func (s *caddyfile) WatchServices(reload bool) {
@@ -45,14 +46,16 @@ func (s *caddyfile) WatchServices(reload bool) {
 			instances, _, _ := catalog.Service(servicename, tag, nil)
 			// TODO should probably check error
 			for _, instance := range instances {
-				myservice := &service{}
-				if instance.ServiceAddress == "" {
-					myservice.Address = instance.Address
-				} else {
+				myservice := &service{
+					Name:      instance.ServiceName,
+					Address:   instance.Address,
+					Port:      instance.ServicePort,
+					Directory: true,
+				}
+				// TODO handle subdomains
+				if instance.ServiceAddress != "" {
 					myservice.Address = instance.ServiceAddress
 				}
-				myservice.Port = instance.ServicePort
-				myservice.Name = 
 				myservices[instance.ServiceID] = append(myservices[instance.ServiceID], myservice)
 				fmt.Printf("%#v\n\n", instance)
 			}
@@ -63,7 +66,7 @@ func (s *caddyfile) WatchServices(reload bool) {
 	fmt.Printf("%#v\n", myservices)
 	contents := ""
 	for address, domain := range s.domains {
-		contents += buildConfig(address, *domain)
+		contents += buildConfig(address, *domain, s.services)
 	}
 	s.contents = contents
 

@@ -87,18 +87,13 @@ func myLoader(serverType string) (caddy.Input, error) {
 	return consulGenerator, nil
 }
 
-func buildConfig(address string, d domain) string {
+func buildConfig(address string, d domain, s map[string][]*service) string {
 	ret := address + "\n"
 
 	ret += d.Config + "\n"
 
-	if d.Services == directories || d.Services == both {
-		ret += "#do services as directories\n"
+	for servicename, _ := range s {
+		ret += "#" + servicename + "\n"
 	}
-
-	if d.Services == subdomain || d.Services == both {
-		ret += "#do services as subdomains\n"
-	}
-
 	return ret + "\n"
 }
