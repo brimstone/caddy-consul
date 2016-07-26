@@ -18,6 +18,9 @@ func (s *caddyfile) WatchKV(reload bool) {
 		WaitIndex: s.lastKV,
 		WaitTime:  5 * time.Minute,
 	}
+	if !reload {
+		opts.WaitTime = time.Second
+	}
 	fmt.Println("Watching for new KV with index", s.lastKV, "or better")
 	pairs, meta, err := kv.List("caddy/", &opts)
 	if meta.LastIndex > s.lastKV {
@@ -40,7 +43,6 @@ func (s *caddyfile) WatchKV(reload bool) {
 		}
 		keybits := strings.SplitN(key, "/", 2)
 		if s.domains[keybits[0]] == nil {
-			fmt.Println("adding a KV")
 			s.domains[keybits[0]] = &domain{
 				Config: "",
 			}
@@ -49,7 +51,7 @@ func (s *caddyfile) WatchKV(reload bool) {
 			continue
 		}
 		if keybits[1] == "config" {
-			s.domains[keybits[0]].Config = keybits[1]
+			s.domains[keybits[0]].Config = string(k.Value)
 		}
 	}
 	contents := ""

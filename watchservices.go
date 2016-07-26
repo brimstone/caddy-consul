@@ -20,7 +20,10 @@ func (s *caddyfile) WatchServices(reload bool) {
 		WaitIndex: s.lastService,
 		WaitTime:  5 * time.Minute,
 	}
-	fmt.Println("Watching for", s.lastService, "or better")
+	if !reload {
+		opts.WaitTime = time.Second
+	}
+	fmt.Println("Watching for new service with index", s.lastService, "or better")
 	// TODO
 	services, meta, err := catalog.Services(&opts)
 	if err != nil {
