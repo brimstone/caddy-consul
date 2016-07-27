@@ -74,7 +74,7 @@ func buildConfig(address string, d domain, s map[string][]*service) string {
 	ret += d.Config + "\n"
 
 	// Loop through each service that should be a subdirectory
-	for servicename, _ := range s {
+	for servicename := range s {
 		if !strings.HasPrefix(servicename, "/") {
 			continue
 		}
@@ -88,7 +88,7 @@ func buildConfig(address string, d domain, s map[string][]*service) string {
 	ret += "}\n\n"
 
 	// Loop thorugh each service that should be a subdomain
-	for servicename, _ := range s {
+	for servicename := range s {
 		if strings.HasPrefix(servicename, "/") {
 			continue
 		}
