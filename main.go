@@ -119,8 +119,7 @@ func buildConfig(address string, d domain, s map[string][]*service) string {
 		for i := range s[servicename] {
 			ret += " " + s[servicename][i].Address + ":" + strconv.Itoa(s[servicename][i].Port)
 		}
-		ret += "\n"
+		ret += "}\n"
 	}
-	ret += "}\n"
 	return ret + "\n"
 }

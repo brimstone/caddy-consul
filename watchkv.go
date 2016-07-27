@@ -23,13 +23,13 @@ func (s *caddyfile) WatchKV(reload bool) {
 	}
 	fmt.Println("Watching for new KV with index", s.lastKV, "or better")
 	pairs, meta, err := kv.List("caddy/", &opts)
-	if meta.LastIndex > s.lastKV {
-		s.lastKV = meta.LastIndex
-	}
 	if err != nil {
 		fmt.Println(err)
 		// this should probably be logged
 		return
+	}
+	if meta.LastIndex > s.lastKV {
+		s.lastKV = meta.LastIndex
 	}
 
 	// TODO actually make a new one, don't just keep using the old one
