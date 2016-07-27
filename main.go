@@ -1,12 +1,10 @@
 package caddyconsul
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/mholt/caddy"
@@ -16,46 +14,7 @@ var consulClient *api.Client
 var kv *api.KV
 var catalog *api.Catalog
 
-var consulGenerator *caddyfile
-
 var initalized = false
-
-type caddyfile struct {
-	contents    string
-	lastKV      uint64
-	lastService uint64
-	domains     map[string]*domain
-	services    map[string][]*service
-}
-
-func (s *caddyfile) Body() []byte {
-	fmt.Println("Generated config:")
-	fmt.Println(s.contents)
-	return []byte(s.contents)
-}
-
-func (s *caddyfile) Path() string {
-	return ""
-}
-
-func (s *caddyfile) ServerType() string {
-	return "http"
-}
-
-func (s *caddyfile) StartWatching() {
-	go func() {
-		for {
-			time.Sleep(1 * time.Second)
-			s.WatchKV(true)
-		}
-	}()
-	go func() {
-		for {
-			time.Sleep(1 * time.Second)
-			s.WatchServices(true)
-		}
-	}()
-}
 
 func init() {
 	caddy.RegisterCaddyfileLoader("myloader", caddy.LoaderFunc(myLoader))
