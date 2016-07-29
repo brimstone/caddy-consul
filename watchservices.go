@@ -35,7 +35,7 @@ func (s *caddyfile) WatchServices(reload bool) {
 		s.lastService = meta.LastIndex
 	}
 
-	myservices := make(map[string][]*service)
+	myservices := make(map[string]map[string][]*service)
 	for servicename := range services {
 		//fmt.Println("Service:", servicename)
 		// Get all instances for this service
@@ -47,6 +47,13 @@ func (s *caddyfile) WatchServices(reload bool) {
 					continue
 				}
 				cleantag := strings.TrimPrefix(tag, "urlprefix-")
+				keybits := strings.SplitN(cleantag, "/", 2)
+				if len(keybits) < 2 {
+					// Our urlprefix isn't long enough, needs at least one forward slash
+					continue
+				}
+				// Add the / back
+				keybits[1] = "/" + keybits[1]
 				myservice := &service{
 					Name:    instance.ServiceName,
 					Address: instance.Address,
@@ -56,19 +63,22 @@ func (s *caddyfile) WatchServices(reload bool) {
 				if instance.ServiceAddress != "" {
 					myservice.Address = instance.ServiceAddress
 				}
-				myservices[cleantag] = append(myservices[cleantag], myservice)
-				//fmt.Printf("%#v\n\n", instance)
+				if myservices[keybits[0]] == nil {
+					myservices[keybits[0]] = make(map[string][]*service)
+				}
+				myservices[keybits[0]][keybits[1]] = append(myservices[keybits[0]][keybits[1]], myservice)
+				if s.domains[keybits[0]] == nil {
+					s.domains[keybits[0]] = &domain{
+						Config: "",
+					}
+				}
 			}
 		}
 	}
 
 	s.services = myservices
-	//fmt.Printf("%#v\n", myservices)
-	contents := ""
-	for address, domain := range s.domains {
-		contents += buildConfig(address, *domain, s.services)
-	}
-	s.contents = contents
+
+	s.buildConfig()
 
 	if reload {
 		reloadCaddy()

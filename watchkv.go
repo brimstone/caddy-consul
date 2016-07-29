@@ -31,6 +31,10 @@ func (s *caddyfile) WatchKV(reload bool) {
 	if meta.LastIndex > s.lastKV {
 		s.lastKV = meta.LastIndex
 	}
+	// If there's nothing, at least put our KV value so the user isn't lost
+	if len(pairs) == 0 {
+		kv.Put(&api.KVPair{Key: "caddy/"}, nil)
+	}
 
 	// TODO actually make a new one, don't just keep using the old one
 	if s.domains == nil {
@@ -47,21 +51,14 @@ func (s *caddyfile) WatchKV(reload bool) {
 				Config: "",
 			}
 		}
-		if keybits[1] == "" {
+		if len(keybits) < 2 {
 			continue
 		}
 		if keybits[1] == "config" {
 			s.domains[keybits[0]].Config = string(k.Value)
 		}
 	}
-	contents := ""
-	for address, domain := range s.domains {
-		contents += buildConfig(address, *domain, s.services)
-	}
-	if contents == "" {
-		fmt.Println("Contents are empty. Perhaps KV isn't configured correctly?")
-	}
-	s.contents = contents
+	s.buildConfig()
 
 	if reload {
 		reloadCaddy()

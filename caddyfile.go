@@ -2,6 +2,7 @@ package caddyconsul
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -12,7 +13,7 @@ type caddyfile struct {
 	lastKV      uint64
 	lastService uint64
 	domains     map[string]*domain
-	services    map[string][]*service
+	services    map[string]map[string][]*service
 }
 
 func (s *caddyfile) Body() []byte {
@@ -42,4 +43,26 @@ func (s *caddyfile) StartWatching() {
 			s.WatchServices(true)
 		}
 	}()
+}
+
+func (s *caddyfile) buildConfig() {
+
+	ret := ""
+	for domainName := range s.domains {
+		ret += domainName + " {\n"
+		ret += s.domains[domainName].Config + "\n"
+		for servicePath := range s.services[domainName] {
+			ret += "	proxy " + servicePath
+			for _, i := range s.services[domainName][servicePath] {
+				ret += " " + i.Address + ":" + strconv.Itoa(i.Port)
+			}
+			ret += " {\n"
+			ret += "		proxy_header X-Real-IP {remote}\n"
+			ret += "		proxy_header X-Forwarded-Proto {scheme}\n"
+			ret += "	}\n"
+			ret += "\n"
+		}
+		ret += "}\n" // close domain
+	}
+	s.contents = ret
 }

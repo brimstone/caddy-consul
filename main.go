@@ -2,8 +2,6 @@ package caddyconsul
 
 import (
 	"os"
-	"strconv"
-	"strings"
 	"syscall"
 
 	"github.com/hashicorp/consul/api"
@@ -63,41 +61,4 @@ func myLoader(serverType string) (caddy.Input, error) {
 	// prevent us from being called more than once
 	initalized = true
 	return consulGenerator, nil
-}
-
-func buildConfig(address string, d domain, s map[string][]*service) string {
-
-	// Start our domain config with the address and an open context block
-	ret := address + " {\n"
-
-	// Add in the domain config
-	ret += d.Config + "\n"
-
-	// Loop through each service that should be a subdirectory
-	for servicename := range s {
-		if !strings.HasPrefix(servicename, "/") {
-			continue
-		}
-		ret += "	proxy " + servicename
-		for i := range s[servicename] {
-			ret += " " + s[servicename][i].Address + ":" + strconv.Itoa(s[servicename][i].Port)
-		}
-		ret += "\n"
-	}
-	// Close our domain context
-	ret += "}\n\n"
-
-	// Loop thorugh each service that should be a subdomain
-	for servicename := range s {
-		if strings.HasPrefix(servicename, "/") {
-			continue
-		}
-		ret += strings.TrimSuffix(servicename, "/") + "." + address + " {\n"
-		ret += "	proxy /"
-		for i := range s[servicename] {
-			ret += " " + s[servicename][i].Address + ":" + strconv.Itoa(s[servicename][i].Port)
-		}
-		ret += "}\n"
-	}
-	return ret + "\n"
 }
