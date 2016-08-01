@@ -3,6 +3,7 @@ package caddyconsul
 import (
 	"os"
 	"syscall"
+	"time"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/mholt/caddy"
@@ -14,11 +15,16 @@ var catalog *api.Catalog
 
 var initalized = false
 
+var started = time.Now()
+
 func init() {
 	caddy.RegisterCaddyfileLoader("myloader", caddy.LoaderFunc(myLoader))
 }
 
 func reloadCaddy() {
+	if time.Since(started) < time.Second {
+		return
+	}
 	self, _ := os.FindProcess(os.Getpid())
 	self.Signal(syscall.SIGUSR1)
 }
