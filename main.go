@@ -23,7 +23,7 @@ func init() {
 }
 
 func reloadCaddy() {
-	if time.Since(started) < time.Second {
+	if time.Since(started) < 2*time.Second {
 		fmt.Println("Not reloading since caddy uptime is too short")
 		return
 	}
