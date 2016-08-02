@@ -14,8 +14,6 @@ var consulClient *api.Client
 var kv *api.KV
 var catalog *api.Catalog
 
-var initalized = false
-
 var started = time.Now()
 
 func init() {
@@ -32,10 +30,6 @@ func reloadCaddy() {
 }
 
 func myLoader(serverType string) (caddy.Input, error) {
-	// This check prevents us from initalizing ourselves when we reload caddy
-	if initalized {
-		return consulGenerator, nil
-	}
 
 	// Assume localhost, if it's not set in the environment
 	consulAddress := os.Getenv("CONSUL")
@@ -47,10 +41,12 @@ func myLoader(serverType string) (caddy.Input, error) {
 
 	var err error
 
-	// setup our consulClient connection
-	consulClient, err = api.NewClient(consulConfig)
-	if err != nil {
-		return nil, err
+	if consulClient == nil {
+		// setup our consulClient connection
+		consulClient, err = api.NewClient(consulConfig)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// setup our KV connection
@@ -58,15 +54,19 @@ func myLoader(serverType string) (caddy.Input, error) {
 	// setup our catalog connection
 	catalog = consulClient.Catalog()
 
-	// Actually create the right instance as a generator that caddy needs
-	consulGenerator = new(caddyfile)
+	if consulGenerator == nil {
+		// Actually create the right instance as a generator that caddy needs
+		consulGenerator = new(caddyfile)
+	}
 	// let the KV and Service portions generate once so we have content for the caddy file when caddy asks the first time
 	consulGenerator.WatchKV(false)
 	consulGenerator.WatchServices(false)
+
+	if len(consulGenerator.Body()) == 0 {
+		return nil, nil
+	}
 	// Start our loop that keeps checking on consul
 	consulGenerator.StartWatching()
 
-	// prevent us from being called more than once
-	initalized = true
 	return consulGenerator, nil
 }
