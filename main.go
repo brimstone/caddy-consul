@@ -1,6 +1,7 @@
 package caddyconsul
 
 import (
+	"fmt"
 	"os"
 	"syscall"
 	"time"
@@ -23,6 +24,7 @@ func init() {
 
 func reloadCaddy() {
 	if time.Since(started) < time.Second {
+		fmt.Println("Not reloading since caddy uptime is too short")
 		return
 	}
 	self, _ := os.FindProcess(os.Getpid())
