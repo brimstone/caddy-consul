@@ -37,27 +37,25 @@ func (s *caddyfile) WatchKV(reload bool) {
 	}
 
 	// TODO actually make a new one, don't just keep using the old one
-	if s.domains == nil {
-		s.domains = make(map[string]*domain)
-	}
+	domains := make(map[string]*domain)
 	for _, k := range pairs {
-		key := strings.TrimLeft(k.Key, "caddy/")
-		if key == "" {
-			continue
-		}
-		keybits := strings.SplitN(key, "/", 2)
-		if s.domains[keybits[0]] == nil {
-			s.domains[keybits[0]] = &domain{
-				Config: "",
-			}
-		}
+		keybits := strings.SplitN(k.Key, "/", 3)
 		if len(keybits) < 2 {
 			continue
 		}
-		if keybits[1] == "config" {
-			s.domains[keybits[0]].Config = string(k.Value)
+		if domains[keybits[1]] == nil {
+			domains[keybits[1]] = &domain{
+				Config: "",
+			}
+		}
+		if len(keybits) < 3 {
+			continue
+		}
+		if keybits[2] == "config" {
+			domains[keybits[1]].Config = string(k.Value)
 		}
 	}
+	s.domains = domains
 	s.buildConfig()
 
 	if reload {
