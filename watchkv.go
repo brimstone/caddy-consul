@@ -40,19 +40,11 @@ func (s *caddyfile) WatchKV(reload bool) {
 	domains := make(map[string]*domain)
 	for _, k := range pairs {
 		keybits := strings.SplitN(k.Key, "/", 3)
-		if len(keybits) < 2 {
+		if len(keybits) != 2 || keybits[1] == "" {
 			continue
 		}
-		if domains[keybits[1]] == nil {
-			domains[keybits[1]] = &domain{
-				Config: "",
-			}
-		}
-		if len(keybits) < 3 {
-			continue
-		}
-		if keybits[2] == "config" {
-			domains[keybits[1]].Config = string(k.Value)
+		domains[keybits[1]] = &domain{
+			Config: string(k.Value),
 		}
 	}
 	s.domains = domains
