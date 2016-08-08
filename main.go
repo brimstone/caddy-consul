@@ -31,6 +31,11 @@ func reloadCaddy() {
 
 func myLoader(serverType string) (caddy.Input, error) {
 
+	// return early, if we can
+	if consulGenerator != nil {
+		return consulGenerator, nil
+	}
+
 	// Assume localhost, if it's not set in the environment
 	consulAddress := os.Getenv("CONSUL")
 	if consulAddress == "" {
@@ -54,10 +59,8 @@ func myLoader(serverType string) (caddy.Input, error) {
 	// setup our catalog connection
 	catalog = consulClient.Catalog()
 
-	if consulGenerator == nil {
-		// Actually create the right instance as a generator that caddy needs
-		consulGenerator = new(caddyfile)
-	}
+	// Actually create the right instance as a generator that caddy needs
+	consulGenerator = new(caddyfile)
 	// let the KV and Service portions generate once so we have content for the caddy file when caddy asks the first time
 	consulGenerator.WatchKV(false)
 	consulGenerator.WatchServices(false)
