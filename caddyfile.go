@@ -57,8 +57,7 @@ func (s *caddyfile) buildConfig() {
 				ret += " " + i.Address + ":" + strconv.Itoa(i.Port)
 			}
 			ret += " {\n"
-			ret += "		proxy_header X-Real-IP {remote}\n"
-			ret += "		proxy_header X-Forwarded-Proto {scheme}\n"
+			ret += "		transparent\n"
 			ret += "	}\n"
 			ret += "\n"
 		}
