@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/mholt/caddy"
+	"github.com/caddyserver/caddy"
 )
 
 var consulClient *api.Client
